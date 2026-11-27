@@ -1,8 +1,57 @@
 generator client {
-    provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-    provider = "postgresql"
-    url      = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum MemberRole {
+  ADMIN
+  MEMBER
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String
+  email        String   @unique
+  passwordHash String?
+  googleId     String?  @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime
+
+  groupsCreated Group[]
+  membership    Member[]
+
+  @@map("users")
+}
+
+model Group {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  createdById String   @db.Uuid
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime
+
+  createdBy User     @relation(fields: [createdById], references: [id])
+  members   Member[]
+
+  @@map("groups")
+}
+
+model Member {
+  id       String     @id @default(uuid()) @db.Uuid
+  groupId  String     @db.Uuid
+  userId   String     @db.Uuid
+  role     MemberRole @default(MEMBER)
+  joinedAt DateTime   @default(now())
+  leftAt   DateTime?
+
+  user  User  @relation(fields: [userId], references: [id])
+  group Group @relation(fields: [groupId], references: [id])
+
+  @@unique([groupId, userId])
+  @@index([userId])
+  @@map("members")
 }
